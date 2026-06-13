@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Pad Pro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Sound Pad Pro</h1>
+            <div class="header-controls">
+                <button id="editModeBtn" class="btn-primary">✏️ Режим редактирования</button>
+                <button id="stopAllBtn" class="btn-secondary">⏹ Остановить все</button>
+                <button id="saveBtn" class="btn-success">💾 Сохранить проект</button>
+                <button id="loadBtn" class="btn-secondary">📂 Загрузить проект</button>
+                <input type="file" id="projectFile" accept=".soundpad" style="display: none;">
+            </div>
+        </div>
+        
+        <div class="controls">
+            <input type="file" id="fileInput" multiple accept="audio/*">
+            <button id="clearBtn" class="btn-secondary">🗑 Очистить все</button>
+        </div>
+
+        <div class="pad-grid" id="padGrid">
+            <!-- Кнопки будут добавлены динамически -->
+        </div>
+
+        <div class="info">
+            <p>📁 Загрузите audio файлы (MP3, WAV, OGG и т.д.)</p>
+            <p>🎮 Нажимайте на кнопки для воспроизведения / паузы</p>
+            <p>⌨️ Используйте цифровые клавиши 1-9 и буквы Q-O</p>
+            <p>✏️ Нажмите "Режим редактирования" для настройки параметров</p>
+        </div>
+    </div>
+
+    <!-- Modal для редактирования -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Редактировать звук</h2>
+            
+            <div class="form-group">
+                <label>Название:</label>
+                <input type="text" id="editName" placeholder="Название звука">
+            </div>
+
+            <div class="form-group">
+                <label>Цвет кнопки:</label>
+                <div class="color-picker-container">
+                    <input type="color" id="editColor" value="#667eea">
+                    <div class="color-presets">
+                        <button class="color-preset" style="background: #667eea;" data-color="#667eea"></button>
+                        <button class="color-preset" style="background: #f093fb;" data-color="#f093fb"></button>
+                        <button class="color-preset" style="background: #4facfe;" data-color="#4facfe"></button>
+                        <button class="color-preset" style="background: #43e97b;" data-color="#43e97b"></button>
+                        <button class="color-preset" style="background: #fa709a;" data-color="#fa709a"></button>
+                        <button class="color-preset" style="background: #feca57;" data-color="#feca57"></button>
+                        <button class="color-preset" style="background: #ff9500;" data-color="#ff9500"></button>
+                        <button class="color-preset" style="background: #a8edea;" data-color="#a8edea"></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="editLoop"> Зациклить воспроизведение
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Громкость: <span id="volumeValue">100</span>%</label>
+                <input type="range" id="editVolume" min="0" max="100" value="100">
+            </div>
+
+            <div class="form-group">
+                <label>Скорость воспроизведения: <span id="playbackValue">1.0x</span></label>
+                <input type="range" id="editPlaybackRate" min="0.5" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="form-group">
+                <label>Горячая клавиша:</label>
+                <select id="editHotkey">
+                    <option value="">Без клавиши</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Задержка перед воспроизведением (сек):</label>
+                <input type="number" id="editDelay" min="0" step="0.1" value="0">
+            </div>
+
+            <div class="modal-buttons">
+                <button id="saveEditBtn" class="btn-success">✓ Сохранить</button>
+                <button id="deleteEditBtn" class="btn-danger">🗑 Удалить звук</button>
+                <button id="cancelEditBtn" class="btn-secondary">✕ Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для просмотра во время редактирования -->
+    <div id="previewContainer" class="preview-container">
+        <audio id="previewAudio" controls style="width: 100%; margin-bottom: 20px;"></audio>
+        <p id="previewInfo"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
