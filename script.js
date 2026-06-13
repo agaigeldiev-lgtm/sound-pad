@@ -5,6 +5,7 @@ class SoundPad {
         this.playingIndexes = new Set();
         this.editingIndex = null;
         this.editMode = false;
+        this.updateIntervals = {};
         this.keyMap = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o'];
         
         this.fileInput = document.getElementById('fileInput');
@@ -93,6 +94,7 @@ class SoundPad {
             const button = document.createElement('div');
             button.className = `pad-button ${this.editMode ? 'edit-mode' : ''}`;
             button.style.background = `linear-gradient(135deg, ${sound.color} 0%, ${this.adjustBrightness(sound.color, -20)} 100%)`;
+            button.dataset.index = index;
             
             const keyLabel = sound.hotkey || (this.keyMap[index] ? this.keyMap[index].toUpperCase() : '');
             
@@ -102,12 +104,20 @@ class SoundPad {
             audio.playbackRate = sound.playbackRate;
             this.audioElements[index] = audio;
             
+            // Обработчик окончания звука
             audio.addEventListener('ended', () => {
                 this.playingIndexes.delete(index);
                 this.updatePadStatus(index);
+                if (this.updateIntervals[index]) {
+                    clearInterval(this.updateIntervals[index]);
+                    delete this.updateIntervals[index];
+                }
             });
             
-            let statusText = '';
+            // Обработчик временного обновления
+            audio.addEventListener('timeupdate', () => {
+                this.updateProgress(index);
+            });
             
             if (this.editMode) {
                 button.innerHTML = `
@@ -116,12 +126,16 @@ class SoundPad {
                         <div class="pad-delete-btn">✕</div>
                     </div>
                     <div class="pad-controls">
-                        <button class="pad-edit-btn">⚙️ Редакт.</button>
+                        <button class="pad-edit-btn" data-action="edit">⚙️ Редакт.</button>
                     </div>
-                    <div class="pad-status">${statusText}</div>
                 `;
                 
-                button.querySelector('.pad-edit-btn').addEventListener('click', () => this.openEditModal(index));
+                const editBtn = button.querySelector('[data-action="edit"]');
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openEditModal(index);
+                });
+                
                 button.querySelector('.pad-delete-btn').addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.deleteSound(index);
@@ -132,15 +146,21 @@ class SoundPad {
                         <div class="pad-name">${sound.name}</div>
                         ${keyLabel ? `<div class="pad-key">[${keyLabel}]</div>` : ''}
                     </div>
-                    <div class="pad-controls">
-                        <button class="pad-play-btn">▶ Play</button>
-                        <button class="pad-play-btn" style="font-size: 0.7em;">⏸ Pause</button>
+                    <div class="pad-info">
+                        <span class="time-display">0:00 / 0:00</span>
                     </div>
-                    <div class="pad-status">${statusText}</div>
+                    <div class="pad-progress">
+                        <div class="pad-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="pad-controls">
+                        <button class="pad-play-btn" data-action="play">▶ Play</button>
+                        <button class="pad-play-btn" data-action="pause">⏸ Pause</button>
+                    </div>
+                    <div class="pad-status"></div>
                 `;
                 
-                const playBtn = button.querySelectorAll('.pad-play-btn')[0];
-                const pauseBtn = button.querySelectorAll('.pad-play-btn')[1];
+                const playBtn = button.querySelector('[data-action="play"]');
+                const pauseBtn = button.querySelector('[data-action="pause"]');
                 
                 playBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -151,10 +171,51 @@ class SoundPad {
                     e.stopPropagation();
                     this.pauseSound(index);
                 });
+                
+                // Обновить время при загрузке метаданных
+                audio.addEventListener('loadedmetadata', () => {
+                    this.updateTimeDisplay(index);
+                });
             }
             
             this.padGrid.appendChild(button);
         });
+    }
+
+    formatTime(seconds) {
+        if (!isFinite(seconds)) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    updateProgress(index) {
+        const buttons = document.querySelectorAll('.pad-button');
+        const button = buttons[index];
+        if (!button || this.editMode) return;
+        
+        const audio = this.audioElements[index];
+        const progressBar = button.querySelector('.pad-progress-bar');
+        const timeDisplay = button.querySelector('.time-display');
+        
+        if (audio && progressBar && audio.duration) {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.style.width = progress + '%';
+            timeDisplay.textContent = `${this.formatTime(audio.currentTime)} / ${this.formatTime(audio.duration)}`;
+        }
+    }
+
+    updateTimeDisplay(index) {
+        const buttons = document.querySelectorAll('.pad-button');
+        const button = buttons[index];
+        if (!button || this.editMode) return;
+        
+        const audio = this.audioElements[index];
+        const timeDisplay = button.querySelector('.time-display');
+        
+        if (audio && timeDisplay) {
+            timeDisplay.textContent = `0:00 / ${this.formatTime(audio.duration)}`;
+        }
     }
 
     playSound(index) {
@@ -183,6 +244,8 @@ class SoundPad {
         
         const buttons = document.querySelectorAll('.pad-button');
         buttons[index].classList.add('playing');
+        const playBtn = buttons[index].querySelector('[data-action="play"]');
+        if (playBtn) playBtn.classList.add('playing');
         
         setTimeout(() => {
             buttons[index].classList.remove('playing');
@@ -196,6 +259,10 @@ class SoundPad {
         audio.pause();
         this.playingIndexes.delete(index);
         this.updatePadStatus(index);
+        
+        const buttons = document.querySelectorAll('.pad-button');
+        const playBtn = buttons[index].querySelector('[data-action="play"]');
+        if (playBtn) playBtn.classList.remove('playing');
     }
 
     updatePadStatus(index) {
@@ -321,7 +388,7 @@ class SoundPad {
     }
 
     stopAll() {
-        this.audioElements.forEach(audio => {
+        this.audioElements.forEach((audio, index) => {
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
